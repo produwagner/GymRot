@@ -7,6 +7,7 @@ export default function LandingPage({ deferredPrompt, onEnterApp }) {
   const [isIOS, setIsIOS] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstallingPWA, setIsInstallingPWA] = useState(false);
 
   useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -32,15 +33,53 @@ export default function LandingPage({ deferredPrompt, onEnterApp }) {
       deferredPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === "accepted") {
           console.log("Usuário aceitou a instalação");
+          setIsInstallingPWA(true);
         } else {
           console.log("Usuário recusou a instalação");
         }
-        onEnterApp();
       });
     } else {
       setShowModal(true);
     }
   };
+
+  if (isInstallingPWA) {
+    return (
+      <div className="landing-container animate-fade-in">
+        <div className="landing-content glass">
+          <div className="landing-logo-wrapper">
+            <div className="landing-logo-circle spinner-animation">
+              <BarbellIcon size={36} className="landing-logo-icon" />
+            </div>
+            <h1 className="landing-title">Instalando...</h1>
+            <p className="landing-subtitle">O GymRot está chegando!</p>
+          </div>
+
+          <p className="landing-description" style={{ marginBottom: "30px", fontSize: "0.95rem" }}>
+            O aplicativo está sendo instalado no seu dispositivo e um atalho ficará disponível na sua tela principal em instantes.
+            <br /><br />
+            Você já pode fechar esta aba do navegador. Abra o app pelo ícone criado para usá-lo offline com melhor performance!
+          </p>
+
+          <div className="landing-actions" style={{ width: "100%" }}>
+            <button className="btn btn-secondary btn-large" onClick={() => setIsInstallingPWA(false)}>
+              Voltar
+            </button>
+          </div>
+        </div>
+        
+        <style>{`
+          @keyframes spinSlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .spinner-animation {
+            animation: spinSlow 3s linear infinite;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   if (isInstalled) return null;
 
