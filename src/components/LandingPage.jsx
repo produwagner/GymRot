@@ -43,75 +43,63 @@ export default function LandingPage({ deferredPrompt, onEnterApp }) {
     }
   };
 
-  if (isInstallingPWA) {
-    return (
-      <div className="landing-container animate-fade-in">
-        <div className="landing-content glass">
-          <div className="landing-logo-wrapper">
-            <div className="landing-logo-circle spinner-animation">
-              <BarbellIcon size={36} className="landing-logo-icon" />
-            </div>
-            <h1 className="landing-title">Instalando...</h1>
-            <p className="landing-subtitle">O GymRot está chegando!</p>
-          </div>
-
-          <p className="landing-description" style={{ marginBottom: "30px", fontSize: "0.95rem" }}>
-            O aplicativo está sendo instalado no seu dispositivo e um atalho ficará disponível na sua tela principal em instantes.
-            <br /><br />
-            Você já pode fechar esta aba do navegador. Abra o app pelo ícone criado para usá-lo offline com melhor performance!
-          </p>
-
-          <div className="landing-actions" style={{ width: "100%" }}>
-            <button className="btn btn-secondary btn-large" onClick={() => setIsInstallingPWA(false)}>
-              Voltar
-            </button>
-          </div>
-        </div>
-        
-        <style>{`
-          @keyframes spinSlow {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          .spinner-animation {
-            animation: spinSlow 3s linear infinite;
-          }
-        `}</style>
-      </div>
-    );
-  }
-
   if (isInstalled) return null;
 
   return (
     <div className="landing-container animate-fade-in">
       <div className="landing-content glass">
-        <div className="landing-logo-wrapper">
-          <div className="landing-logo-circle">
-            <BarbellIcon size={36} className="landing-logo-icon" />
-          </div>
-          <h1 className="landing-title">Gym<span>Rot</span></h1>
-          <p className="landing-subtitle">Seu treino, no seu ritmo.</p>
-        </div>
+        {isInstallingPWA ? (
+          <>
+            <div className="landing-logo-wrapper">
+              <div className="landing-logo-circle spinner-animation">
+                <BarbellIcon size={36} className="landing-logo-icon" />
+              </div>
+              <h1 className="landing-title">Instalando...</h1>
+              <p className="landing-subtitle">O GymRot está chegando!</p>
+            </div>
 
-        <p className="landing-description">
-          Gerencie suas rotinas ABCD, registre cargas em tempo real e utilize o timer de descanso inteligente offline de forma simples e rápida.
-        </p>
+            <p className="landing-description" style={{ marginBottom: "30px", fontSize: "0.95rem" }}>
+              O aplicativo está sendo instalado no seu dispositivo e um atalho ficará disponível na sua tela principal em instantes.
+              <br /><br />
+              Você já pode fechar esta aba do navegador. Abra o app pelo ícone criado para usá-lo offline com melhor performance!
+            </p>
 
-        <div className="landing-actions">
-          {/* Always show the Install button on landing page */}
-          <button className="btn btn-primary btn-large" onClick={handleInstallClick}>
-            Instalar Aplicativo
-          </button>
+            <div className="landing-actions">
+              <button className="btn btn-secondary btn-large" onClick={() => setIsInstallingPWA(false)}>
+                Voltar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="landing-logo-wrapper">
+              <div className="landing-logo-circle">
+                <BarbellIcon size={36} className="landing-logo-icon" />
+              </div>
+              <h1 className="landing-title">Gym<span>Rot</span></h1>
+              <p className="landing-subtitle">Seu treino, no seu ritmo.</p>
+            </div>
 
-          <button className="btn btn-secondary btn-large" onClick={onEnterApp}>
-            Acessar no Navegador
-          </button>
-        </div>
+            <p className="landing-description">
+              Gerencie suas rotinas ABCD, registre cargas em tempo real e utilize o timer de descanso inteligente offline de forma simples e rápida.
+            </p>
 
-        <div className="landing-footer">
-          Ficha ABCD Inteligente • Funciona Offline
-        </div>
+            <div className="landing-actions">
+              {/* Always show the Install button on landing page */}
+              <button className="btn btn-primary btn-large" onClick={handleInstallClick}>
+                Instalar Aplicativo
+              </button>
+
+              <button className="btn btn-secondary btn-large" onClick={onEnterApp}>
+                Acessar no Navegador
+              </button>
+            </div>
+
+            <div className="landing-footer">
+              Ficha ABCD Inteligente • Funciona Offline
+            </div>
+          </>
+        )}
       </div>
 
       {/* Modal - Name Choice or iOS/Android/Desktop Instructions */}
@@ -345,6 +333,15 @@ export default function LandingPage({ deferredPrompt, onEnterApp }) {
           border-radius: 4px;
           font-size: 1rem;
           color: var(--color-text-primary);
+        }
+
+        @keyframes spinSlow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .spinner-animation {
+          animation: spinSlow 3s linear infinite;
         }
       `}</style>
     </div>
