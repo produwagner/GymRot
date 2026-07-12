@@ -5,7 +5,7 @@ import Dashboard from "./components/Dashboard";
 import ActiveWorkout from "./components/ActiveWorkout";
 import RoutineManager from "./components/RoutineManager";
 import History from "./components/History";
-import { BarbellIcon, CalendarIcon, HistoryIcon, SettingsIcon, SunIcon, MoonIcon } from "./components/Icons";
+import { BarbellIcon, CalendarIcon, HistoryIcon, SettingsIcon } from "./components/Icons";
 
 export default function App() {
   // Navigation State
@@ -194,15 +194,10 @@ export default function App() {
   // If they are on the landing page, show it
   if (!hasEnteredApp) {
     return (
-      <>
-        <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="Alternar tema">
-          {theme === "dark" ? <SunIcon size={20} /> : <MoonIcon size={20} />}
-        </button>
-        <LandingPage
-          deferredPrompt={deferredPrompt}
-          onEnterApp={handleEnterApp}
-        />
-      </>
+      <LandingPage
+        deferredPrompt={deferredPrompt}
+        onEnterApp={handleEnterApp}
+      />
     );
   }
 
@@ -210,9 +205,6 @@ export default function App() {
   if (activeWorkoutRoutine) {
     return (
       <div className="app-container">
-        <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="Alternar tema">
-          {theme === "dark" ? <SunIcon size={20} /> : <MoonIcon size={20} />}
-        </button>
         <ActiveWorkout
           routine={activeWorkoutRoutine}
           history={history}
@@ -225,10 +217,6 @@ export default function App() {
 
   return (
     <div className="app-container animate-fade-in">
-      <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="Alternar tema">
-        {theme === "dark" ? <SunIcon size={20} /> : <MoonIcon size={20} />}
-      </button>
-
       {/* Main View Area */}
       <main className="app-main-content">
         {renderTabContent()}
