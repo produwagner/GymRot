@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BarbellIcon } from "./Icons";
+import { BarbellIcon, CheckIcon } from "./Icons";
 
 export default function LandingPage({ deferredPrompt, onEnterApp }) {
   const [showModal, setShowModal] = useState(false);
@@ -8,6 +8,25 @@ export default function LandingPage({ deferredPrompt, onEnterApp }) {
   const [isMobile, setIsMobile] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isInstallingPWA, setIsInstallingPWA] = useState(false);
+  const [isInstalledSuccessfully, setIsInstalledSuccessfully] = useState(false);
+
+  useEffect(() => {
+    const handleAppInstalled = () => {
+      console.log("PWA instalado com sucesso!");
+      setIsInstallingPWA(false);
+      setIsInstalledSuccessfully(true);
+    };
+
+    window.addEventListener("appinstalled", handleAppInstalled);
+    return () => {
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleCloseTab = () => {
+    window.close();
+    onEnterApp();
+  };
 
   useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -48,10 +67,32 @@ export default function LandingPage({ deferredPrompt, onEnterApp }) {
   return (
     <div className="landing-container animate-fade-in">
       <div className="landing-content glass">
-        {isInstallingPWA ? (
+        {isInstalledSuccessfully ? (
           <>
             <div className="landing-logo-wrapper">
-              <div className="landing-logo-circle spinner-animation">
+              <div className="landing-logo-circle" style={{ backgroundColor: "var(--accent-lime)" }}>
+                <CheckIcon size={36} className="landing-logo-icon" />
+              </div>
+              <h1 className="landing-title">Instalado!</h1>
+              <p className="landing-subtitle" style={{ color: "var(--accent-lime)" }}>O GymRot está pronto.</p>
+            </div>
+
+            <p className="landing-description" style={{ marginBottom: "30px", fontSize: "0.95rem" }}>
+              O aplicativo foi instalado com sucesso no seu dispositivo.
+              <br /><br />
+              Você já pode fechar esta aba do navegador. Abra o GymRot diretamente pelo ícone criado na tela inicial do seu aparelho para começar a treinar!
+            </p>
+
+            <div className="landing-actions">
+              <button className="btn btn-primary btn-large" onClick={handleCloseTab}>
+                Fechar Página
+              </button>
+            </div>
+          </>
+        ) : isInstallingPWA ? (
+          <>
+            <div className="landing-logo-wrapper">
+              <div className="landing-logo-circle">
                 <BarbellIcon size={36} className="landing-logo-icon" />
               </div>
               <h1 className="landing-title">Instalando...</h1>
@@ -59,9 +100,9 @@ export default function LandingPage({ deferredPrompt, onEnterApp }) {
             </div>
 
             <p className="landing-description" style={{ marginBottom: "30px", fontSize: "0.95rem" }}>
-              O aplicativo está sendo instalado no seu dispositivo e um atalho ficará disponível na sua tela principal em instantes.
+              O aplicativo está sendo adicionado ao seu dispositivo.
               <br /><br />
-              Você já pode fechar esta aba do navegador. Abra o app pelo ícone criado para usá-lo offline com melhor performance!
+              Um atalho estará disponível na sua tela principal em instantes. Aguarde a conclusão da instalação...
             </p>
 
             <div className="landing-actions">
