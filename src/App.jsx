@@ -15,12 +15,16 @@ export default function App() {
     if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
       return true;
     }
-    return sessionStorage.getItem("gymrot_session_entered") === "true" || sessionStorage.getItem("fittrack_session_entered") === "true";
+    return sessionStorage.getItem("gymwag_session_entered") === "true" ||
+           sessionStorage.getItem("gymrot_session_entered") === "true" ||
+           sessionStorage.getItem("fittrack_session_entered") === "true";
   });
 
   // Theme State
   const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem("gymrot_theme") || localStorage.getItem("fittrack_theme");
+    const saved = localStorage.getItem("gymwag_theme") ||
+                  localStorage.getItem("gymrot_theme") ||
+                  localStorage.getItem("fittrack_theme");
     if (saved) return saved;
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
@@ -30,13 +34,27 @@ export default function App() {
 
   // App Data State
   const [workoutData, setWorkoutData] = useState(() => {
-    const saved = localStorage.getItem("gymrot_workout_data") || localStorage.getItem("fittrack_workout_data");
-    return saved ? JSON.parse(saved) : defaultWorkout;
+    try {
+      const saved = localStorage.getItem("gymwag_workout_data") ||
+                    localStorage.getItem("gymrot_workout_data") ||
+                    localStorage.getItem("fittrack_workout_data");
+      return saved ? JSON.parse(saved) : defaultWorkout;
+    } catch (e) {
+      console.error("Erro ao carregar workoutData:", e);
+      return defaultWorkout;
+    }
   });
 
   const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem("gymrot_history") || localStorage.getItem("fittrack_history");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("gymwag_history") ||
+                    localStorage.getItem("gymrot_history") ||
+                    localStorage.getItem("fittrack_history");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Erro ao carregar history:", e);
+      return [];
+    }
   });
 
   // Apply theme class to body
@@ -46,7 +64,7 @@ export default function App() {
     } else {
       document.body.classList.remove("dark-theme");
     }
-    localStorage.setItem("gymrot_theme", theme);
+    localStorage.setItem("gymwag_theme", theme);
   }, [theme]);
 
   const toggleTheme = () => {
@@ -90,16 +108,16 @@ export default function App() {
 
   // Save state changes to localStorage
   useEffect(() => {
-    localStorage.setItem("gymrot_workout_data", JSON.stringify(workoutData));
+    localStorage.setItem("gymwag_workout_data", JSON.stringify(workoutData));
   }, [workoutData]);
 
   useEffect(() => {
-    localStorage.setItem("gymrot_history", JSON.stringify(history));
+    localStorage.setItem("gymwag_history", JSON.stringify(history));
   }, [history]);
 
   const handleEnterApp = () => {
     setHasEnteredApp(true);
-    sessionStorage.setItem("gymrot_session_entered", "true");
+    sessionStorage.setItem("gymwag_session_entered", "true");
   };
 
   const handleStartWorkout = (routine) => {

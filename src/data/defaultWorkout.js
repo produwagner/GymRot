@@ -1,6 +1,6 @@
 export const defaultWorkout = {
   id: "default-abcd",
-  name: "Ficha ABCD - GymRot Personalizada",
+  name: "Ficha ABCD - GymWag Personalizada",
   objective: "Hipertrofia & Recomposição",
   routines: [
     {

@@ -38,7 +38,7 @@ export default function RoutineManager({ workoutData, onUpdateWorkoutData }) {
   });
 
   const handleResetToDefault = () => {
-    if (window.confirm("Deseja realmente restaurar as fichas padrão do GymRot? Suas personalizações atuais nas fichas serão perdidas (seu histórico de treinos salvos NÃO será afetado).")) {
+    if (window.confirm("Deseja realmente restaurar as fichas padrão do GymWag? Suas personalizações atuais nas fichas serão perdidas (seu histórico de treinos salvos NÃO será afetado).")) {
       onUpdateWorkoutData(defaultWorkout);
       setSelectedRoutineId(defaultWorkout.routines[0].id);
     }
