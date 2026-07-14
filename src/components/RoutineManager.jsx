@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { PlusIcon, TrashIcon, CheckIcon, EditIcon, DragHandleIcon } from "./Icons";
 import { defaultWorkout } from "../data/defaultWorkout";
+import SyncStatusIndicator from "./SyncStatusIndicator";
 
-export default function RoutineManager({ workoutData, onUpdateWorkoutData }) {
+export default function RoutineManager({ workoutData, onUpdateWorkoutData, syncProps }) {
   const [selectedRoutineId, setSelectedRoutineId] = useState(() => {
     return workoutData.routines.length > 0 ? workoutData.routines[0].id : "";
   });
@@ -257,6 +258,14 @@ export default function RoutineManager({ workoutData, onUpdateWorkoutData }) {
     <div className="routine-manager-container animate-fade-in">
       <header className="routine-manager-header">
         <h2 className="routine-manager-title">Gerenciar Fichas</h2>
+        {syncProps && (
+          <SyncStatusIndicator
+            status={syncProps.status}
+            lastSync={syncProps.lastSync}
+            isOnline={syncProps.isOnline}
+            onSync={syncProps.onSync}
+          />
+        )}
       </header>
 
       {/* Routine Selector Tabs */}
@@ -528,10 +537,16 @@ export default function RoutineManager({ workoutData, onUpdateWorkoutData }) {
           padding: 20px 16px;
         }
 
+        .routine-manager-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 10px;
+        }
+
         .routine-manager-title {
           font-size: 1.5rem;
           color: var(--color-text-primary);
-          margin-top: 10px;
         }
 
         .routine-tabs-wrapper {

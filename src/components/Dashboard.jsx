@@ -1,7 +1,8 @@
 import React from "react";
 import { BarbellIcon, TrophyIcon, HistoryIcon, EditIcon } from "./Icons";
+import SyncStatusIndicator from "./SyncStatusIndicator";
 
-export default function Dashboard({ workoutData, history, onStartWorkout, onSetActiveTab, profile }) {
+export default function Dashboard({ workoutData, history, onStartWorkout, onSetActiveTab, profile, syncProps }) {
   // Simple weekly tracker (last 7 days)
   const getWeeklyProgress = () => {
     const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -46,9 +47,19 @@ export default function Dashboard({ workoutData, history, onStartWorkout, onSetA
           <span className="welcome-text">Bora treinar,</span>
           <h2 className="user-name">{profile?.name || "Wagner"}!</h2>
         </div>
-        <div className="streak-badge glass">
-          <TrophyIcon size={20} className="badge-icon" />
-          <span>{totalWorkouts} treinos</span>
+        <div className="header-actions">
+          <div className="streak-badge glass">
+            <TrophyIcon size={20} className="badge-icon" />
+            <span>{totalWorkouts} treinos</span>
+          </div>
+          {syncProps && (
+            <SyncStatusIndicator
+              status={syncProps.status}
+              lastSync={syncProps.lastSync}
+              isOnline={syncProps.isOnline}
+              onSync={syncProps.onSync}
+            />
+          )}
         </div>
       </header>
 
@@ -151,6 +162,12 @@ export default function Dashboard({ workoutData, history, onStartWorkout, onSetA
           margin-top: -2px;
         }
 
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
         .streak-badge {
           display: flex;
           align-items: center;
@@ -163,7 +180,6 @@ export default function Dashboard({ workoutData, history, onStartWorkout, onSetA
           color: var(--accent-lime);
           border: 1px solid rgba(19, 115, 51, 0.15);
           background: rgba(19, 115, 51, 0.05);
-          margin-right: 48px; /* Evita colisão com o botão de tema */
         }
 
         .badge-icon {

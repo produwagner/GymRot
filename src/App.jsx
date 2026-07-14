@@ -713,6 +713,13 @@ export default function App() {
 
   // Render navigation tab contents
   const renderTabContent = () => {
+    const syncProps = googleSyncSettings.connected ? {
+      status: syncStatus,
+      lastSync: lastSyncTime,
+      isOnline,
+      onSync: handleSync
+    } : null;
+
     switch (activeTab) {
       case "dashboard":
         return (
@@ -722,6 +729,7 @@ export default function App() {
             onStartWorkout={handleStartWorkout}
             onSetActiveTab={setActiveTab}
             profile={profile}
+            syncProps={syncProps}
           />
         );
       case "routines":
@@ -729,6 +737,7 @@ export default function App() {
           <RoutineManager
             workoutData={workoutData}
             onUpdateWorkoutData={handleUpdateWorkoutData}
+            syncProps={syncProps}
           />
         );
       case "history":
@@ -736,6 +745,7 @@ export default function App() {
           <History
             history={history}
             onClearHistory={handleClearHistory}
+            syncProps={syncProps}
           />
         );
       case "settings":
@@ -755,6 +765,7 @@ export default function App() {
             onTriggerExpiredSession={handleTokenExpired}
             onImportBackup={handleImportBackup}
             onClearHistory={handleClearHistory}
+            syncProps={syncProps}
           />
         );
       default:
@@ -810,14 +821,6 @@ export default function App() {
 
   return (
     <div className="app-container animate-fade-in">
-      {googleSyncSettings.connected && (
-        <SyncStatusIndicator
-          status={syncStatus}
-          lastSync={lastSyncTime}
-          isOnline={isOnline}
-          onSync={handleSync}
-        />
-      )}
       {/* Main View Area */}
       <main className="app-main-content">
         {renderTabContent()}

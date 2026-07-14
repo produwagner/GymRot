@@ -8,6 +8,7 @@ import {
   MoonIcon,
   InfoIcon
 } from "./Icons";
+import SyncStatusIndicator from "./SyncStatusIndicator";
 import { 
   requestAccessToken, 
   initTokenClient, 
@@ -32,7 +33,8 @@ export default function Settings({
   history,
   onTriggerExpiredSession,
   onImportBackup,
-  onClearHistory
+  onClearHistory,
+  syncProps
 }) {
   // Local profile inputs
   const [name, setName] = useState(profile.name || "");
@@ -307,6 +309,14 @@ export default function Settings({
     <div className="settings-container animate-fade-in">
       <header className="settings-header">
         <h2 className="settings-title">Perfil & Ajustes</h2>
+        {syncProps && (
+          <SyncStatusIndicator
+            status={syncProps.status}
+            lastSync={syncProps.lastSync}
+            isOnline={syncProps.isOnline}
+            onSync={syncProps.onSync}
+          />
+        )}
       </header>
 
       {/* Profile Form Card */}
@@ -626,6 +636,9 @@ export default function Settings({
         }
 
         .settings-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           margin-top: 10px;
         }
 

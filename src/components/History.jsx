@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { TrashIcon, CalendarIcon, ClockIcon, InfoIcon, CheckIcon } from "./Icons";
+import SyncStatusIndicator from "./SyncStatusIndicator";
 
 // Local inline chevrons for month navigation
 const ChevronLeftIcon = ({ size = 20 }) => (
@@ -21,7 +22,7 @@ const MONTHS = [
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export default function History({ history }) {
+export default function History({ history, syncProps }) {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
@@ -156,6 +157,14 @@ export default function History({ history }) {
     <div className="history-container animate-fade-in">
       <header className="history-header">
         <h2 className="history-title">Histórico</h2>
+        {syncProps && (
+          <SyncStatusIndicator
+            status={syncProps.status}
+            lastSync={syncProps.lastSync}
+            isOnline={syncProps.isOnline}
+            onSync={syncProps.onSync}
+          />
+        )}
       </header>
 
       {history.length === 0 ? (
@@ -325,8 +334,6 @@ export default function History({ history }) {
           align-items: center;
           gap: 4px;
           font-weight: 500;
-          transition: color 0.2s;
-          margin-right: 48px; /* Evita colisão com o botão de tema */
         }
 
         .btn-clear-history:hover {
