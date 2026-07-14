@@ -11,6 +11,7 @@ import { GOOGLE_CLIENT_ID } from "./config";
 import { BarbellIcon, CalendarIcon, HistoryIcon, UserIcon, ClipboardIcon } from "./components/Icons";
 import { 
   loadGoogleGIS, 
+  initTokenClient,
   renewTokenSilently, 
   performFullSync, 
   appendProfile, 
