@@ -149,6 +149,9 @@ export default function App() {
   });
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
 
+  // Exit App Toast confirmation state
+  const [showExitMessage, setShowExitMessage] = useState(false);
+
   // Apply theme class to body
   useEffect(() => {
     if (theme === "dark") {
@@ -406,6 +409,68 @@ export default function App() {
       window.removeEventListener("offline", handleOffline);
     };
   }, [googleSyncSettings.connected]);
+
+  // Intercept PWA back button
+  const navigationStateRef = useRef({ activeTab, activeWorkoutRoutine });
+  useEffect(() => {
+    navigationStateRef.current = { activeTab, activeWorkoutRoutine };
+  }, [activeTab, activeWorkoutRoutine]);
+
+  useEffect(() => {
+    if (!hasEnteredApp || !googleSyncSettings.connected) {
+      return;
+    }
+
+    // Push dummy state to handle back navigation control
+    window.history.pushState({ noBackExits: true }, "");
+
+    let lastBackPress = 0;
+    let toastTimeout = null;
+
+    const handlePopState = (event) => {
+      const currentTab = navigationStateRef.current.activeTab;
+      const isWorkoutActive = navigationStateRef.current.activeWorkoutRoutine;
+
+      // 1. If active workout, verify cancel intent
+      if (isWorkoutActive) {
+        window.history.pushState({ noBackExits: true }, "");
+        if (window.confirm("Deseja realmente cancelar este treino? Os dados digitados serão perdidos.")) {
+          setActiveWorkoutRoutine(null);
+          setActiveTab("dashboard");
+        }
+        return;
+      }
+
+      // 2. If not on dashboard, return to dashboard
+      if (currentTab !== "dashboard") {
+        window.history.pushState({ noBackExits: true }, "");
+        setActiveTab("dashboard");
+        return;
+      }
+
+      // 3. Double tap back button to exit
+      const now = Date.now();
+      if (now - lastBackPress < 2000) {
+        window.history.go(-2);
+      } else {
+        lastBackPress = now;
+        window.history.pushState({ noBackExits: true }, "");
+        
+        setShowExitMessage(true);
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          setShowExitMessage(false);
+        }, 2000);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      clearTimeout(toastTimeout);
+    };
+  }, [hasEnteredApp, googleSyncSettings.connected]);
 
   // Save state changes to localStorage
   useEffect(() => {
@@ -793,6 +858,13 @@ export default function App() {
         </button>
       </nav>
 
+      {/* Floating Exit confirmation toast */}
+      {showExitMessage && (
+        <div className="exit-toast animate-fade-in">
+          Pressione voltar novamente para sair
+        </div>
+      )}
+
       {/* Bottom Nav Scoped Styles */}
       <style>{`
         .app-main-content {
@@ -848,6 +920,24 @@ export default function App() {
 
         .nav-item.active {
           color: var(--accent-purple);
+        }
+
+        /* Exit Toast Styles */
+        .exit-toast {
+          position: fixed;
+          bottom: 96px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(30, 30, 30, 0.9);
+          color: #ffffff;
+          padding: 10px 18px;
+          border-radius: 12px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          z-index: 1000;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+          white-space: nowrap;
+          pointer-events: none;
         }
       `}</style>
     </div>
