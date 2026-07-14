@@ -30,7 +30,8 @@ export default function Settings({
   onSync,
   workoutData,
   history,
-  onTriggerExpiredSession
+  onTriggerExpiredSession,
+  onImportBackup
 }) {
   // Local profile inputs
   const [name, setName] = useState(profile.name || "");
@@ -63,6 +64,56 @@ export default function Settings({
       height: height ? parseFloat(height) : "" 
     });
     alert("Perfil atualizado com sucesso!");
+  };
+
+  const handleExportBackup = () => {
+    try {
+      const backupData = {
+        gymwag_workout_data: workoutData,
+        gymwag_history: history,
+        gymwag_profile: profile,
+        gymwag_profile_history: profileHistory,
+        exportedAt: new Date().toISOString(),
+        version: "1.1.0"
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      const dateStr = new Date().toISOString().split('T')[0];
+      downloadAnchor.setAttribute("download", `gymwag_backup_${dateStr}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } catch (err) {
+      alert("Erro ao exportar backup: " + err.message);
+    }
+  };
+
+  const handleImportBackupFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const importedData = JSON.parse(event.target.result);
+        
+        // Validação básica de chaves
+        if (!importedData.gymwag_workout_data && !importedData.gymwag_history) {
+          alert("Arquivo inválido! O arquivo JSON não parece ser um backup válido do GymWag.");
+          return;
+        }
+
+        const confirmMsg = "Atenção: A importação irá substituir TODOS os seus dados locais de fichas, treinos e histórico por este backup. Deseja continuar?";
+        if (window.confirm(confirmMsg)) {
+          onImportBackup(importedData);
+        }
+      } catch (err) {
+        alert("Erro ao ler o arquivo JSON: " + err.message);
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleConnectGoogle = async () => {
@@ -512,6 +563,29 @@ export default function Settings({
         </div>
       </section>
 
+      {/* Backup Settings Card */}
+      <section className="settings-section glass">
+        <h3 className="section-title">Backup de Segurança (Manual)</h3>
+        <p className="sync-info-text" style={{ marginBottom: "14px", marginTop: "6px" }}>
+          Baixe um arquivo com todos os seus dados locais ou restaure um backup anterior. Útil para transferir dados ou salvar uma cópia extra offline.
+        </p>
+        <div className="backup-actions-row">
+          <button type="button" className="btn btn-secondary backup-btn" onClick={handleExportBackup}>
+            Exportar Backup (JSON)
+          </button>
+          
+          <label className="btn btn-primary backup-btn backup-import-label">
+            Importar Backup (JSON)
+            <input 
+              type="file" 
+              accept=".json" 
+              onChange={handleImportBackupFile} 
+              style={{ display: "none" }}
+            />
+          </label>
+        </div>
+      </section>
+
       {/* Version Card */}
       <div className="version-info">
         <InfoIcon size={14} />
@@ -936,6 +1010,27 @@ export default function Settings({
 
         .theme-toggle-pill {
           padding: 8px 16px;
+        }
+
+        /* Backup Settings Card Styles */
+        .backup-actions-row {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .backup-btn {
+          flex: 1;
+          min-width: 150px;
+          font-size: 0.85rem;
+          padding: 10px 16px;
+        }
+
+        .backup-import-label {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
         }
 
         /* Version Card */

@@ -7,6 +7,7 @@ import RoutineManager from "./components/RoutineManager";
 import History from "./components/History";
 import Settings from "./components/Settings";
 import LoginScreen from "./components/LoginScreen";
+import SyncStatusIndicator from "./components/SyncStatusIndicator";
 import { GOOGLE_CLIENT_ID } from "./config";
 import { BarbellIcon, CalendarIcon, HistoryIcon, UserIcon, ClipboardIcon } from "./components/Icons";
 import { 
@@ -136,6 +137,15 @@ export default function App() {
   // Ref to hold latest state for sync events
   const latestDataRef = useRef({ profileHistory, profile, workoutData, history, googleSyncSettings });
   latestDataRef.current = { profileHistory, profile, workoutData, history, googleSyncSettings };
+
+  // Sync Status States
+  const [syncStatus, setSyncStatus] = useState(() => {
+    return localStorage.getItem("gymwag_sync_status") || "synced";
+  });
+  const [lastSyncTime, setLastSyncTime] = useState(() => {
+    return localStorage.getItem("gymwag_last_sync_time") || "";
+  });
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
 
   // Apply theme class to body
   useEffect(() => {
@@ -286,6 +296,48 @@ export default function App() {
     }));
   };
 
+  // Wrapper para gerenciar status e logs das tarefas de sincronização no Google Drive
+  const runSyncTask = async (taskFn, isSilent = false) => {
+    const currentSettings = latestDataRef.current.googleSyncSettings;
+    if (!currentSettings.connected) return;
+    
+    setSyncStatus("syncing");
+    localStorage.setItem("gymwag_sync_status", "syncing");
+    
+    try {
+      if (!navigator.onLine) {
+        throw new Error("offline");
+      }
+      await taskFn();
+      
+      setSyncStatus("synced");
+      localStorage.setItem("gymwag_sync_status", "synced");
+      
+      const timeStr = new Date().toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+      setLastSyncTime(timeStr);
+      localStorage.setItem("gymwag_last_sync_time", timeStr);
+    } catch (err) {
+      console.error("Erro na sincronização:", err);
+      const isNetworkError = !navigator.onLine || 
+                            err.message === "offline" || 
+                            err.message.includes("Failed to fetch") || 
+                            err.message.includes("NetworkError");
+      
+      const nextStatus = isNetworkError ? "pending" : "error";
+      setSyncStatus(nextStatus);
+      localStorage.setItem("gymwag_sync_status", nextStatus);
+      
+      if (!isSilent) {
+        throw err;
+      }
+    }
+  };
+
   // Auto-sincronização bidirecional na abertura do app (montagem) ou ao retornar para o primeiro plano (foreground)
   useEffect(() => {
     let active = true;
@@ -297,37 +349,8 @@ export default function App() {
 
       console.log("Iniciando auto-sincronização de abertura do app...");
       try {
-        const token = await getValidToken();
-        if (!active) return;
-
-        const { 
-          profileHistory: currentProfileHistory, 
-          profile: currentProfile, 
-          workoutData: currentWorkoutData, 
-          history: currentHistory 
-        } = latestDataRef.current;
-
-        const result = await syncBidirectional(
-          token,
-          currentSettings.spreadsheetId,
-          currentProfileHistory,
-          currentProfile,
-          currentWorkoutData,
-          currentHistory,
-          handleTokenExpired
-        );
-
-        if (result && active) {
-          setHistory(result.history);
-          setProfileHistory(result.profileHistory);
-          setProfile(result.profile);
-          setWorkoutData(result.workoutData);
-
-          localStorage.setItem("gymwag_history", JSON.stringify(result.history));
-          localStorage.setItem("gymwag_profile_history", JSON.stringify(result.profileHistory));
-          localStorage.setItem("gymwag_profile", JSON.stringify(result.profile));
-          localStorage.setItem("gymwag_workout_data", JSON.stringify(result.workoutData));
-          console.log("Auto-sincronização de abertura concluída com sucesso!");
+        if (active) {
+          await handleSync();
         }
       } catch (err) {
         console.error("Erro na auto-sincronização de abertura:", err);
@@ -359,20 +382,41 @@ export default function App() {
     googleSyncSettings.autoSync
   ]);
 
+  // Monitorar status online/offline e auto-sincronizar se voltar online com sync pendente
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      const savedStatus = localStorage.getItem("gymwag_sync_status");
+      if (savedStatus === "pending" && googleSyncSettings.connected) {
+        console.log("Conexão restabelecida! Sincronizando dados pendentes...");
+        handleSync();
+      }
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [googleSyncSettings.connected]);
+
   // Save state changes to localStorage
   useEffect(() => {
     localStorage.setItem("gymwag_workout_data", JSON.stringify(workoutData));
 
     // Debounced routines auto-sync to Sheets if connected
     if (googleSyncSettings.connected && googleSyncSettings.spreadsheetId) {
-      const syncDebounce = setTimeout(async () => {
-        try {
+      const syncDebounce = setTimeout(() => {
+        runSyncTask(async () => {
           const token = await getValidToken();
           await syncRoutines(token, googleSyncSettings.spreadsheetId, workoutData, handleTokenExpired);
           console.log("Rotinas sincronizadas com Google Sheets.");
-        } catch (err) {
-          console.error("Erro ao sincronizar rotinas de treino:", err);
-        }
+        }, true);
       }, 2000);
       return () => clearTimeout(syncDebounce);
     }
@@ -422,18 +466,43 @@ export default function App() {
 
     // Sync profile to Google Sheets if connected
     if (googleSyncSettings.connected && googleSyncSettings.spreadsheetId) {
-      try {
+      runSyncTask(async () => {
         const token = await getValidToken();
         await appendProfile(token, googleSyncSettings.spreadsheetId, newProfile, handleTokenExpired);
         console.log("Medidas de perfil enviadas para o Google Sheets.");
-      } catch (err) {
-        console.error("Erro ao sincronizar perfil com o Google Sheets:", err);
-      }
+      }, true);
     }
   };
 
   const handleClearProfileHistory = () => {
     setProfileHistory([]);
+  };
+
+  const handleImportBackup = async (importedData) => {
+    if (importedData.gymwag_workout_data) {
+      setWorkoutData(importedData.gymwag_workout_data);
+      localStorage.setItem("gymwag_workout_data", JSON.stringify(importedData.gymwag_workout_data));
+    }
+    if (importedData.gymwag_history) {
+      setHistory(importedData.gymwag_history);
+      localStorage.setItem("gymwag_history", JSON.stringify(importedData.gymwag_history));
+    }
+    if (importedData.gymwag_profile) {
+      setProfile(importedData.gymwag_profile);
+      localStorage.setItem("gymwag_profile", JSON.stringify(importedData.gymwag_profile));
+    }
+    if (importedData.gymwag_profile_history) {
+      setProfileHistory(importedData.gymwag_profile_history);
+      localStorage.setItem("gymwag_profile_history", JSON.stringify(importedData.gymwag_profile_history));
+    }
+
+    alert("Backup importado com sucesso!");
+
+    if (googleSyncSettings.connected) {
+      setTimeout(() => {
+        handleSync();
+      }, 500);
+    }
   };
 
   const handleUpdateWorkoutData = (newDataOrFn) => {
@@ -447,27 +516,29 @@ export default function App() {
   };
 
   const handleSync = async () => {
-    const token = await getValidToken();
-    const result = await syncBidirectional(
-      token,
-      googleSyncSettings.spreadsheetId,
-      profileHistory,
-      profile,
-      workoutData,
-      history,
-      handleTokenExpired
-    );
-    if (result) {
-      setHistory(result.history);
-      setProfileHistory(result.profileHistory);
-      setProfile(result.profile);
-      setWorkoutData(result.workoutData);
+    await runSyncTask(async () => {
+      const token = await getValidToken();
+      const result = await syncBidirectional(
+        token,
+        googleSyncSettings.spreadsheetId,
+        latestDataRef.current.profileHistory,
+        latestDataRef.current.profile,
+        latestDataRef.current.workoutData,
+        latestDataRef.current.history,
+        handleTokenExpired
+      );
+      if (result) {
+        setHistory(result.history);
+        setProfileHistory(result.profileHistory);
+        setProfile(result.profile);
+        setWorkoutData(result.workoutData);
 
-      localStorage.setItem("gymwag_history", JSON.stringify(result.history));
-      localStorage.setItem("gymwag_profile_history", JSON.stringify(result.profileHistory));
-      localStorage.setItem("gymwag_profile", JSON.stringify(result.profile));
-      localStorage.setItem("gymwag_workout_data", JSON.stringify(result.workoutData));
-    }
+        localStorage.setItem("gymwag_history", JSON.stringify(result.history));
+        localStorage.setItem("gymwag_profile_history", JSON.stringify(result.profileHistory));
+        localStorage.setItem("gymwag_profile", JSON.stringify(result.profile));
+        localStorage.setItem("gymwag_workout_data", JSON.stringify(result.workoutData));
+      }
+    });
   };
 
   const handleEnterApp = () => {
@@ -517,15 +588,14 @@ export default function App() {
 
     // Sync finished session to Google Drive if connected and autoSync is enabled
     if (googleSyncSettings.connected && googleSyncSettings.autoSync !== false) {
-      try {
+      runSyncTask(async () => {
         console.log("Iniciando auto-sincronização do treino finalizado...");
         const token = await getValidToken();
         await appendWorkoutSession(token, googleSyncSettings.spreadsheetId, sessionData, handleTokenExpired);
         console.log("Treino sincronizado com o Google Sheets!");
-      } catch (err) {
-        console.error("Erro na auto-sincronização do treino:", err);
-        alert("Treino tempo salvo localmente no aparelho, mas ocorreu um erro ao sincronizar com a planilha do Google: " + err.message);
-      }
+      }, true).catch((err) => {
+        alert("Treino salvo localmente no aparelho, mas ocorreu um erro ao sincronizar com a planilha do Google: " + err.message);
+      });
     }
   };
 
@@ -582,6 +652,7 @@ export default function App() {
             workoutData={workoutData}
             history={history}
             onTriggerExpiredSession={handleTokenExpired}
+            onImportBackup={handleImportBackup}
           />
         );
       default:
@@ -637,6 +708,14 @@ export default function App() {
 
   return (
     <div className="app-container animate-fade-in">
+      {googleSyncSettings.connected && (
+        <SyncStatusIndicator
+          status={syncStatus}
+          lastSync={lastSyncTime}
+          isOnline={isOnline}
+          onSync={handleSync}
+        />
+      )}
       {/* Main View Area */}
       <main className="app-main-content">
         {renderTabContent()}
