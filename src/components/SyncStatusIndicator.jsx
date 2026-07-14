@@ -20,7 +20,6 @@ export default function SyncStatusIndicator({ status, lastSync, isOnline, onSync
     if (!isOnline) {
       return {
         label: "Sem Internet",
-        color: "var(--status-error)",
         iconClass: "cloud-offline",
         desc: "O app salvará tudo localmente até a conexão voltar."
       };
@@ -29,21 +28,18 @@ export default function SyncStatusIndicator({ status, lastSync, isOnline, onSync
       case "syncing":
         return {
           label: "Sincronizando...",
-          color: "#4285f4", // Google Blue
-          iconClass: "spinner-animation",
+          iconClass: "cloud-syncing",
           desc: "Atualizando dados com o Google Drive."
         };
       case "pending":
         return {
           label: "Envio Pendente",
-          color: "var(--status-warning)",
           iconClass: "cloud-pending",
           desc: "Dados salvos localmente. Aguardando conexão ou próxima sincronização."
         };
       case "error":
         return {
           label: "Erro no Sync",
-          color: "var(--status-error)",
           iconClass: "cloud-error",
           desc: "Falha na conexão com o Drive. Clique em sincronizar para tentar novamente."
         };
@@ -51,7 +47,6 @@ export default function SyncStatusIndicator({ status, lastSync, isOnline, onSync
       default:
         return {
           label: "Nuvem Atualizada",
-          color: "var(--status-success)",
           iconClass: "cloud-synced",
           desc: "Todos os seus dados estão salvos no Google Drive."
         };
@@ -69,7 +64,6 @@ export default function SyncStatusIndicator({ status, lastSync, isOnline, onSync
         aria-label="Status de Sincronização"
       >
         <CloudIcon size={18} className={details.iconClass} />
-        <span className="status-dot" style={{ backgroundColor: details.color }}></span>
       </button>
 
       {isOpen && (
@@ -124,15 +118,16 @@ export default function SyncStatusIndicator({ status, lastSync, isOnline, onSync
         .sync-indicator-pill {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px;
-          border-radius: 12px;
+          justify-content: center;
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
           background: var(--bg-card);
           border: 1px solid var(--border-color);
-          color: var(--color-text-primary);
           cursor: pointer;
           box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
+          padding: 0;
         }
 
         .sync-indicator-pill:hover {
@@ -140,24 +135,13 @@ export default function SyncStatusIndicator({ status, lastSync, isOnline, onSync
           transform: translateY(-1px);
         }
 
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-        }
-
-        .sync-indicator-pill.syncing .status-dot {
-          animation: pulse-dot 1s infinite alternate;
-        }
-
-        @keyframes pulse-dot {
-          from { opacity: 0.3; transform: scale(0.8); }
-          to { opacity: 1; transform: scale(1.2); }
+        .sync-indicator-pill svg {
+          transition: color 0.4s ease, opacity 0.4s ease;
         }
 
         .sync-tooltip-box {
           position: absolute;
-          top: 42px;
+          top: 44px;
           right: 0;
           width: 240px;
           padding: 14px;
@@ -214,7 +198,7 @@ export default function SyncStatusIndicator({ status, lastSync, isOnline, onSync
           min-height: 0;
         }
 
-        /* SVG icon styles */
+        /* SVG icon styles and colors changing smoothly */
         .spinner-animation {
           animation: spin 1.5s linear infinite;
         }
@@ -238,6 +222,16 @@ export default function SyncStatusIndicator({ status, lastSync, isOnline, onSync
 
         .cloud-synced {
           color: var(--status-success);
+        }
+
+        .cloud-syncing {
+          color: #4285f4; /* Google Blue */
+          animation: pulse-opacity 1.2s infinite alternate ease-in-out;
+        }
+
+        @keyframes pulse-opacity {
+          from { opacity: 0.4; }
+          to { opacity: 1; }
         }
       `}</style>
     </div>
