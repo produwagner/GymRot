@@ -23,6 +23,107 @@ import {
   clearWorkoutHistorySheet
 } from "./services/googleDriveService";
 
+// Helper to deduplicate local history data (both session duplicates and set duplicates)
+function deduplicateHistory(historyList) {
+  if (!Array.isArray(historyList)) return [];
+
+  const getNormalizedDateKey = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+      const d = new Date(dateStr);
+      d.setMilliseconds(0);
+      return d.toISOString();
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const sessionsMap = {};
+
+  historyList.forEach(session => {
+    if (!session) return;
+    const key = getNormalizedDateKey(session.date);
+    
+    if (!sessionsMap[key]) {
+      sessionsMap[key] = {
+        ...session,
+        exercises: Array.isArray(session.exercises) ? session.exercises.map(ex => {
+          if (!ex) return ex;
+          const seenSets = new Set();
+          const uniqueSets = [];
+          if (Array.isArray(ex.setsData)) {
+            ex.setsData.forEach(set => {
+              const num = parseInt(set.setNum) || 1;
+              if (!seenSets.has(num)) {
+                seenSets.add(num);
+                uniqueSets.push(set);
+              }
+            });
+          }
+          return {
+            ...ex,
+            setsData: uniqueSets
+          };
+        }) : []
+      };
+    } else {
+      const existingSession = sessionsMap[key];
+      if (Array.isArray(session.exercises)) {
+        session.exercises.forEach(ex => {
+          if (!ex) return;
+          let existingEx = existingSession.exercises.find(e => e.name === ex.name);
+          if (!existingEx) {
+            existingEx = {
+              name: ex.name,
+              sets: ex.sets,
+              setsData: []
+            };
+            existingSession.exercises.push(existingEx);
+          }
+          if (Array.isArray(ex.setsData)) {
+            ex.setsData.forEach(set => {
+              const num = parseInt(set.setNum) || 1;
+              const hasSet = existingEx.setsData.some(s => (parseInt(s.setNum) || 1) === num);
+              if (!hasSet) {
+                existingEx.setsData.push(set);
+              }
+            });
+          }
+        });
+      }
+    }
+  });
+
+  return Object.values(sessionsMap).sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+// Helper to deduplicate local profile history data
+function deduplicateProfileHistory(profileHistoryList) {
+  if (!Array.isArray(profileHistoryList)) return [];
+
+  const getNormalizedDateKey = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+      const d = new Date(dateStr);
+      d.setMilliseconds(0);
+      return d.toISOString();
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const profileMap = {};
+  profileHistoryList.forEach(item => {
+    if (!item) return;
+    const key = getNormalizedDateKey(item.date);
+    if (!profileMap[key]) {
+      profileMap[key] = item;
+    }
+  });
+
+  return Object.values(profileMap).sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
 export default function App() {
   // Navigation State
   const [activeTab, setActiveTab] = useState("dashboard"); // dashboard, routines, history
@@ -65,7 +166,8 @@ export default function App() {
       const saved = localStorage.getItem("gymwag_history") ||
                     localStorage.getItem("gymrot_history") ||
                     localStorage.getItem("fittrack_history");
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return deduplicateHistory(parsed);
     } catch (e) {
       console.error("Erro ao carregar history:", e);
       return [];
@@ -86,7 +188,8 @@ export default function App() {
   const [profileHistory, setProfileHistory] = useState(() => {
     try {
       const saved = localStorage.getItem("gymwag_profile_history");
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return deduplicateProfileHistory(parsed);
     } catch (e) {
       console.error("Erro ao carregar profileHistory:", e);
       return [];
@@ -574,16 +677,18 @@ export default function App() {
       localStorage.setItem("gymwag_workout_data", JSON.stringify(importedData.gymwag_workout_data));
     }
     if (importedData.gymwag_history) {
-      setHistory(importedData.gymwag_history);
-      localStorage.setItem("gymwag_history", JSON.stringify(importedData.gymwag_history));
+      const cleanHistory = deduplicateHistory(importedData.gymwag_history);
+      setHistory(cleanHistory);
+      localStorage.setItem("gymwag_history", JSON.stringify(cleanHistory));
     }
     if (importedData.gymwag_profile) {
       setProfile(importedData.gymwag_profile);
       localStorage.setItem("gymwag_profile", JSON.stringify(importedData.gymwag_profile));
     }
     if (importedData.gymwag_profile_history) {
-      setProfileHistory(importedData.gymwag_profile_history);
-      localStorage.setItem("gymwag_profile_history", JSON.stringify(importedData.gymwag_profile_history));
+      const cleanProfileHistory = deduplicateProfileHistory(importedData.gymwag_profile_history);
+      setProfileHistory(cleanProfileHistory);
+      localStorage.setItem("gymwag_profile_history", JSON.stringify(cleanProfileHistory));
     }
 
     alert("Backup importado com sucesso!");

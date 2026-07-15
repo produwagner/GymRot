@@ -102,6 +102,10 @@ export default function Timer({ duration, onFinish, onCancel }) {
   const progress = duration > 0 ? (duration - timeLeft) / duration : 0;
   const strokeDashoffset = circumference - progress * circumference;
 
+  // Minimized pill border progress calculations (Perimeter of 320x54 capsule)
+  const borderCircumference = 699;
+  const borderStrokeDashoffset = borderCircumference - (timeLeft / duration) * borderCircumference;
+
   // Format time (MM:SS)
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -200,13 +204,29 @@ export default function Timer({ duration, onFinish, onCancel }) {
             </div>
           </div>
 
-          {/* Progress bar inside the Dynamic Island pill bottom */}
-          <div className="island-progress-bg">
-            <div 
-              className="island-progress-fill" 
-              style={{ width: `${(timeLeft / duration) * 100}%` }}
+          {/* Border progress outline */}
+          <svg className="island-border-progress-svg" width="320" height="54">
+            <rect
+              className="island-border-progress-track"
+              x="0.5"
+              y="0.5"
+              width="319"
+              height="53"
+              rx="26.5"
+              fill="none"
             />
-          </div>
+            <rect
+              className="island-border-progress-rect"
+              x="0.5"
+              y="0.5"
+              width="319"
+              height="53"
+              rx="26.5"
+              fill="none"
+              strokeDasharray="699"
+              strokeDashoffset={borderStrokeDashoffset}
+            />
+          </svg>
         </div>
       )}
 
@@ -304,7 +324,8 @@ export default function Timer({ duration, onFinish, onCancel }) {
 
         .timer-circle-bg {
           fill: none;
-          stroke: #f1f3f4;
+          stroke: var(--border-color);
+          opacity: 0.25;
         }
 
         .timer-circle-progress {
@@ -365,12 +386,9 @@ export default function Timer({ duration, onFinish, onCancel }) {
           top: 20px;
           left: 50%;
           transform: translateX(-50%);
-          width: auto;
-          min-width: 300px;
-          max-width: 95%;
+          width: 320px;
           height: 54px;
           background: rgba(20, 20, 22, 0.95);
-          border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 27px;
           box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
           backdrop-filter: blur(20px) saturate(190%);
@@ -386,7 +404,6 @@ export default function Timer({ duration, onFinish, onCancel }) {
 
         .timer-dynamic-island:hover {
           box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
-          border-color: rgba(255, 255, 255, 0.2);
           transform: translateX(-50%) scale(1.02);
         }
 
@@ -398,6 +415,8 @@ export default function Timer({ duration, onFinish, onCancel }) {
           height: 100%;
           width: 100%;
           gap: 16px;
+          position: relative;
+          z-index: 2;
         }
 
         .island-info {
@@ -480,20 +499,26 @@ export default function Timer({ duration, onFinish, onCancel }) {
           background: rgba(255, 255, 255, 0.1);
         }
 
-        .island-progress-bg {
+        .island-border-progress-svg {
           position: absolute;
-          bottom: 0;
+          top: 0;
           left: 0;
-          right: 0;
-          height: 3px;
-          background: rgba(255, 255, 255, 0.08);
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 1;
         }
 
-        .island-progress-fill {
-          height: 100%;
-          background: var(--accent-purple);
-          border-radius: 0 2px 2px 0;
-          transition: width 1s linear;
+        .island-border-progress-track {
+          stroke: rgba(255, 255, 255, 0.08);
+          stroke-width: 1.5px;
+        }
+
+        .island-border-progress-rect {
+          stroke: var(--accent-purple);
+          stroke-width: 1.5px;
+          stroke-linecap: round;
+          transition: stroke-dashoffset 1s linear;
         }
 
         .animate-island-pop {

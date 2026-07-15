@@ -571,6 +571,19 @@ export async function syncBidirectional(token, spreadsheetId, profileHistory, cu
     return new Date(year, month, day, hour, minute, second);
   };
 
+  // Helper to normalize date strings to ISO strings with milliseconds set to 0.
+  // This prevents duplication issues when merging dates that were stripped of millisecond precision.
+  const getNormalizedDateKey = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+      const d = new Date(dateStr);
+      d.setMilliseconds(0);
+      return d.toISOString();
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   // 2. Profile History Smart Merge
   const profileHistoryClearedAt = localStorage.getItem("gymwag_profile_history_cleared_at");
   const parsedProfileHistory = rowsProfile.map(row => {
@@ -591,11 +604,15 @@ export async function syncBidirectional(token, spreadsheetId, profileHistory, cu
 
   const profileMap = {};
   profileHistory.forEach(item => {
-    const key = new Date(item.date).toISOString();
+    const key = getNormalizedDateKey(item.date);
     profileMap[key] = item;
   });
   parsedProfileHistory.forEach(item => {
-    const key = new Date(item.date).toISOString();
+    const key = getNormalizedDateKey(item.date);
+    if (profileMap[key]) {
+      // Keep the local date with milliseconds if available
+      item.date = profileMap[key].date;
+    }
     profileMap[key] = item;
   });
 
@@ -620,8 +637,8 @@ export async function syncBidirectional(token, spreadsheetId, profileHistory, cu
       return;
     }
 
-    if (!sessionsMap[date]) {
-      sessionsMap[date] = {
+    if (!sessionsMap[isoDate]) {
+      sessionsMap[isoDate] = {
         routineId: routineId || "",
         routineName: routineName || "",
         date: isoDate,
@@ -631,7 +648,7 @@ export async function syncBidirectional(token, spreadsheetId, profileHistory, cu
       };
     }
 
-    const session = sessionsMap[date];
+    const session = sessionsMap[isoDate];
     let exercise = session.exercises.find(e => e.name === exName);
     if (!exercise) {
       exercise = {
@@ -642,22 +659,30 @@ export async function syncBidirectional(token, spreadsheetId, profileHistory, cu
       session.exercises.push(exercise);
     }
 
-    exercise.setsData.push({
-      setNum: parseInt(setNum) || 1,
-      load: load || "",
-      reps: reps || "",
-      completed: completed === "Sim"
-    });
+    const setNumInt = parseInt(setNum) || 1;
+    const hasSet = exercise.setsData.some(s => s.setNum === setNumInt);
+    if (!hasSet) {
+      exercise.setsData.push({
+        setNum: setNumInt,
+        load: load || "",
+        reps: reps || "",
+        completed: completed === "Sim"
+      });
+    }
   });
 
   const sheetHistoryList = Object.values(sessionsMap);
   const historyMap = {};
   history.forEach(session => {
-    const key = new Date(session.date).toISOString();
+    const key = getNormalizedDateKey(session.date);
     historyMap[key] = session;
   });
   sheetHistoryList.forEach(session => {
-    const key = new Date(session.date).toISOString();
+    const key = getNormalizedDateKey(session.date);
+    if (historyMap[key]) {
+      // Keep the local date with milliseconds if available
+      session.date = historyMap[key].date;
+    }
     historyMap[key] = session;
   });
 
