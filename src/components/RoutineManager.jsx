@@ -141,13 +141,12 @@ export default function RoutineManager({ workoutData, onUpdateWorkoutData, syncP
 
   // Drag & Drop handlers
   const handleDragStart = (e, index) => {
-    // Only allow dragging if initiated from the drag handle
-    if (!e.target.closest('.drag-handle-wrapper')) {
-      e.preventDefault();
-      return;
-    }
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
+    if (e.dataTransfer.setDragImage && e.currentTarget.parentElement) {
+      // Use the parent card as the drag image
+      e.dataTransfer.setDragImage(e.currentTarget.parentElement, 20, 20);
+    }
   };
 
   const handleDragOver = (e, index) => {
@@ -424,13 +423,15 @@ export default function RoutineManager({ workoutData, onUpdateWorkoutData, syncP
                   <div
                     key={ex.id}
                     className={`manager-exercise-item glass ${draggedIndex === idx ? "dragging" : ""} ${dragOverIndex === idx ? "drag-over" : ""}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, idx)}
                     onDragOver={(e) => handleDragOver(e, idx)}
-                    onDragEnd={handleDragEnd}
                     onDrop={() => handleDrop(idx)}
                   >
-                    <div className="drag-handle-wrapper">
+                    <div
+                      className="drag-handle-wrapper"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragEnd={handleDragEnd}
+                    >
                       <DragHandleIcon size={18} className="drag-icon" />
                     </div>
 
